@@ -1,18 +1,64 @@
 # V1 - slajd 8
+from datetime import datetime, timedelta
 class Ambulance:
-    __slots__ = ['id', 'vehicle_type', 'status', 'location', 'medical_equipment']
+    __slots__ = ['id', 'vehicle_type', 'status', 'location', 'medical_equipment', 'incident', 'state']
     __instances_count = 0
+    __max_id = 1
 
-    def __init__(self, id, vehicle_type, status, location, medical_equipment):
-        self.id = id
+    def __init__(self, vehicle_type, status, location, medical_equipment):
+        self.id = Ambulance.__max_id
         self.vehicle_type = vehicle_type
         self.status = status  # e.g., "available", "on_mission", "servicing"
         self.location = location # as (northing, easting)
         self.medical_equipment = medical_equipment  # List of medical equipment names
+        self.incident = []
+        self.state = 'rest'
         Ambulance.__instances_count += 1
+        Ambulance.__max_id += 1
 
     def update_location(self, new_location):
+        self.state = 'drives'
         self.location = new_location
+
+    def add_incident(self, incident):
+        self.incident.append(incident)
+        print(f'Added incident{self.incident[-1].id} to ambulance{self.id}')
+        self.state = 'got incident'
+        print(f'ambulance{self.id} got incident')
+
+    def sort_incident(self):
+        self.incident = sorted(self.incident, key=lambda x: (x.priority, x.time))
+        self.state = 'thinks'
+        print(f'Sorted incident: {self.incident}')
+
+    def time_from_incident_happend(self, incident):
+        aktualny_czas = datetime.now()
+        aktualny_czas = aktualny_czas.strftime("%H:%M")
+        czas_incydentu = datetime.strptime(incident.time, '%H:%M')
+        czas_incydentu = czas_incydentu.strftime("%H:%M")
+        print(f'aktualny czs: {aktualny_czas}, czas zajscia incydentu: {czas_incydentu}')
+        roznica_godziny = int(aktualny_czas[0:2]) - int(czas_incydentu[0:2])
+        roznica_minuy = int(aktualny_czas[3:5]) - int(czas_incydentu[3:5])
+        roznica_czasu = timedelta(hours=roznica_godziny, minutes=roznica_minuy)
+        print(f'roznica czasu: {roznica_czasu}')
+
+    def distance_from_incident(self, incident):
+        x = abs(self.location[0] - incident.location[0])
+        y = abs(self.location[1] - incident.location[1])
+        print(f'roznica odleglosci x: {x}, y: {y}')
+
+    def ambulance_works(self):
+        self.sort_incident()
+        assert self.state == "thinks"
+        for accident in self.incident:
+            self.time_from_incident_happend(accident)
+            self.distance_from_incident(accident)
+            self.update_location(accident.location)
+            assert self.state == "drives"
+            accident.status = "done"
+            self.state = "done"
+            assert self.state == "done"
+            print("incident done")
 
     def __eq__(self, other):
         if not isinstance(other, Ambulance):
@@ -34,14 +80,14 @@ class Ambulance:
 
 if __name__ == "__main__":
     ambulance1 = Ambulance(
-        id=0,
+        #id=0,
         vehicle_type="AZ124",
         status="Available",
         location=(50.095340, 19.920282),
         medical_equipment = ["defibrillator", "stretcher"]
     )
     ambulance2 = Ambulance(
-        id=1,
+        #id=1,
         vehicle_type="AZ2000",
         status="Available",
         location=(50.095340, 19.920282),
